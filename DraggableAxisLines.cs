@@ -18,7 +18,10 @@ namespace ScottPlotSample
         public string Title => "Draggable Axis Lines";
         public string Description => "Demonstrates how to add mouse interactivity to plotted objects";
 
+        //Line code
         AxisLine? PlottableBeingDragged = null;
+        //Span code
+        AxisSpanUnderMouse? SpanBeingDragged = null;
 
         public DraggableAxisLines()
         {
@@ -28,13 +31,23 @@ namespace ScottPlotSample
             formsPlot1.Plot.Add.Signal(Generate.Sin());
             formsPlot1.Plot.Add.Signal(Generate.Cos());
 
-            var vl = formsPlot1.Plot.Add.VerticalLine(23);
-            vl.IsDraggable = true;
-            vl.Text = "VLine";
+            //Line code
+            var verticalLine = formsPlot1.Plot.Add.VerticalLine(23);
+            verticalLine.IsDraggable = true;
+            verticalLine.Text = "VLine";
 
-            var hl = formsPlot1.Plot.Add.HorizontalLine(0.42);
-            hl.IsDraggable = true;
-            hl.Text = "HLine";
+            var horizontalLine = formsPlot1.Plot.Add.HorizontalLine(0.42);
+            horizontalLine.IsDraggable = true;
+            horizontalLine.Text = "HLine";
+
+            //Span code
+            var verticalSpan = formsPlot1.Plot.Add.VerticalSpan(.23, .78);
+            verticalSpan.IsDraggable = true;
+            verticalSpan.IsResizable = true;
+
+            var horizontalSpan = formsPlot1.Plot.Add.HorizontalSpan(12, 21);
+            horizontalSpan.IsDraggable = true;
+            horizontalSpan.IsResizable = true;
 
             formsPlot1.Refresh();
 
@@ -46,17 +59,29 @@ namespace ScottPlotSample
 
         private void FormsPlot1_MouseDown(object? sender, MouseEventArgs e)
         {
+            //Line code
             var lineUnderMouse = GetLineUnderMouse(e.X, e.Y);
             if (lineUnderMouse is not null)
             {
                 PlottableBeingDragged = lineUnderMouse;
                 formsPlot1.UserInputProcessor.Disable(); // disable panning while dragging
             }
+
+            //Span code
+            var thingUnderMouse = GetSpanUnderMouse(e.X, e.Y);
+            if (thingUnderMouse is not null)
+            {
+                SpanBeingDragged = thingUnderMouse;
+                formsPlot1.UserInputProcessor.Disable(); // disable panning while dragging
+            }
         }
 
         private void FormsPlot1_MouseUp(object? sender, MouseEventArgs e)
         {
+            //Line code
             PlottableBeingDragged = null;
+            //Span code
+            SpanBeingDragged = null;
             formsPlot1.UserInputProcessor.Enable(); // enable panning again
             formsPlot1.Refresh();
         }
@@ -89,6 +114,24 @@ namespace ScottPlotSample
                 }
                 formsPlot1.Refresh();
             }
+
+
+            if (SpanBeingDragged is not null)
+            {
+                // currently dragging something so update it
+                Coordinates mouseNow = formsPlot1.Plot.GetCoordinates(e.X, e.Y);
+                SpanBeingDragged.DragTo(mouseNow);
+                formsPlot1.Refresh();
+            }
+            else
+            {
+                // not dragging anything so just set the cursor based on what's under the mouse
+                var spanUnderMouse = GetSpanUnderMouse(e.X, e.Y);
+                if (spanUnderMouse is null) Cursor = Cursors.Default;
+                else if (spanUnderMouse.IsResizingHorizontally) Cursor = Cursors.SizeWE;
+                else if (spanUnderMouse.IsResizingVertically) Cursor = Cursors.SizeNS;
+                else if (spanUnderMouse.IsMoving) Cursor = Cursors.SizeAll;
+            }
         }
 
         private AxisLine? GetLineUnderMouse(float x, float y)
@@ -99,6 +142,20 @@ namespace ScottPlotSample
             {
                 if (axLine.IsUnderMouse(rect))
                     return axLine;
+            }
+
+            return null;
+        }
+
+        private AxisSpanUnderMouse? GetSpanUnderMouse(float x, float y)
+        {
+            CoordinateRect rect = formsPlot1.Plot.GetCoordinateRect(x, y, radius: 10);
+
+            foreach (AxisSpan span in formsPlot1.Plot.GetPlottables<AxisSpan>().Reverse())
+            {
+                AxisSpanUnderMouse? spanUnderMouse = span.UnderMouse(rect);
+                if (spanUnderMouse is not null)
+                    return spanUnderMouse;
             }
 
             return null;
