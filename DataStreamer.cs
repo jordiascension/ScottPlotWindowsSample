@@ -38,8 +38,8 @@ namespace ScottPlotSample
         {
             InitializeComponent();
 
-            Streamer1 = formsPlot1.Plot.Add.DataStreamer(2000);
-            Streamer2 = formsPlot1.Plot.Add.DataStreamer(2000);
+            Streamer1 = formsPlot1.Plot.Add.DataStreamer(30000);
+            Streamer2 = formsPlot1.Plot.Add.DataStreamer(30000);
             VLine = formsPlot1.Plot.Add.VerticalLine(0, 2, ScottPlot.Colors.Red);
 
             var vl = formsPlot1.Plot.Add.VerticalLine(23);
@@ -71,6 +71,25 @@ namespace ScottPlotSample
 
             // only show marker button in scroll mode
             btnMark.Visible = false;
+
+            int count = 5000;
+
+            // add new sample data
+            Streamer1.AddRange(Walker1.Next(count));
+            Streamer2.AddRange(Walker2.Next(count));
+
+            // slide marker to the left
+            formsPlot1.Plot.GetPlottables<Marker>()
+                .ToList()
+                .ForEach(m => m.X -= count);
+
+            // remove off-screen marks
+            formsPlot1.Plot.GetPlottables<Marker>()
+                .Where(m => m.X < 0)
+                .ToList()
+                .ForEach(m => formsPlot1.Plot.Remove(m));
+
+            formsPlot1.Refresh();
 
             // setup a timer to add data to the streamer periodically
             AddNewDataTimer.Tick += (s, e) =>
